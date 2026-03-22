@@ -1,7 +1,8 @@
 # Visual Analytics & Dashboard Design: Gestalt & Bertin Principles
 
-**Author:** Moeed ur Rehman 
-**Course/Project:** Project 2 - Interactive Dashboards & Mobile Analytics  
+**Author:** Moeed ur Rehman
+
+**Course/Project:** DSA301 Project 2 - Interactive Dashboards & Mobile Analytics  
 
 ## Overview
 This repository contains the code, data, and design rationale for a two-part data visualization project focusing on the application of **Gestalt principles** and **Jacques Bertin's visual variables**. 
