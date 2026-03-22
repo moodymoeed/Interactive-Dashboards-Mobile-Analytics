@@ -1,0 +1,161 @@
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font-sans)}
+.dash{padding:1.25rem 1rem 1rem}
+.header{margin-bottom:1.25rem}
+.header h2{font-size:17px;font-weight:500;color:var(--color-text-primary);margin-bottom:2px}
+.header p{font-size:12px;color:var(--color-text-secondary)}
+.ctrl-row{display:flex;align-items:center;gap:12px;background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:12px 16px;margin-bottom:1.25rem;border:0.5px solid var(--color-border-tertiary)}
+.ctrl-row label{font-size:13px;color:var(--color-text-secondary);white-space:nowrap}
+.ctrl-row input[type=range]{flex:1}
+#yr-badge{font-size:15px;font-weight:500;color:var(--color-text-primary);min-width:44px;text-align:right}
+.stats-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:1.25rem}
+.stat{background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:10px 14px}
+.stat-lbl{font-size:11px;color:var(--color-text-secondary);margin-bottom:3px;text-transform:uppercase;letter-spacing:.03em}
+.stat-val{font-size:20px;font-weight:500;color:var(--color-text-primary)}
+.charts-top{display:grid;grid-template-columns:1fr;gap:1rem;margin-bottom:1rem}
+.charts-bot{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:1rem}
+.card{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:12px 14px}
+.card-title{font-size:12px;font-weight:500;color:var(--color-text-secondary);margin-bottom:10px;text-transform:uppercase;letter-spacing:.04em}
+.legend{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:8px;font-size:11px;color:var(--color-text-secondary)}
+.legend span{display:flex;align-items:center;gap:4px}
+.leg-dot{width:8px;height:8px;border-radius:2px;flex-shrink:0}
+</style>
+<div class="dash">
+  <div class="header">
+    <h2>Japan inbound immigration dashboard</h2>
+    <p>Annual arrivals by country and region · 1950–2005</p>
+  </div>
+  <div class="ctrl-row">
+    <label>Year</label>
+    <input type="range" id="yr-slider" min="1950" max="2005" value="2000" step="1">
+    <span id="yr-badge">2000</span>
+  </div>
+  <div class="stats-row">
+    <div class="stat"><div class="stat-lbl">Total arrivals</div><div class="stat-val" id="s-total">—</div></div>
+    <div class="stat"><div class="stat-lbl">Largest region</div><div class="stat-val" id="s-region">—</div></div>
+    <div class="stat"><div class="stat-lbl">Top country</div><div class="stat-val" id="s-top">—</div></div>
+  </div>
+  <div class="charts-top">
+    <div class="card">
+      <div class="card-title">Total immigration trend (all years)</div>
+      <div style="position:relative;height:180px"><canvas id="cLine"></canvas></div>
+    </div>
+  </div>
+  <div class="charts-bot">
+    <div class="card">
+      <div class="card-title">Top 10 countries — <span id="bar-yr">2000</span></div>
+      <div id="bar-wrap" style="position:relative;height:320px"><canvas id="cBar"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Region breakdown — <span id="pie-yr">2000</span></div>
+      <div class="legend" id="pie-legend"></div>
+      <div style="position:relative;height:240px"><canvas id="cPie"></canvas></div>
+    </div>
+  </div>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+const DATA=[{"y":1950,"t":18046,"c":[4135,3606,35,9853,102,188],"k":[["United States",9515],["China",2095],["United Kingdom",1669],["South Korea",825],["Philippines",536],["France",501],["India",343],["Canada",314],["Denmark",231],["Australia",180]]},{"y":1951,"t":24268,"c":[7049,5483,206,10769,371,218],"k":[["United States",10354],["China",3789],["United Kingdom",2667],["South Korea",1035],["Philippines",868],["India",698],["France",558],["Canada",330],["Brazil",300],["Sweden",276]]},{"y":1952,"t":32262,"c":[8503,6068,121,16548,662,217],"k":[["United States",15941],["China",3958],["United Kingdom",2920],["South Korea",1693],["Philippines",869],["India",792],["France",590],["Brazil",575],["Canada",538],["Thailand",451]]},{"y":1953,"t":46857,"c":[13343,8902,229,22799,745,676],"k":[["United States",21886],["China",5214],["South Korea",3772],["United Kingdom",3692],["Philippines",1472],["India",1078],["France",1049],["Canada",793],["Thailand",782],["Netherlands",644]]},{"y":1954,"t":47425,"c":[13317,8135,146,24544,621,480],"k":[["United States",23304],["China",5356],["United Kingdom",3918],["South Korea",3073],["Philippines",1584],["Canada",1078],["India",971],["Thailand",962],["Germany",806],["France",763]]},{"y":1955,"t":55638,"c":[14533,10305,220,29370,465,579],"k":[["United States",27908],["China",6449],["United Kingdom",4589],["Philippines",2476],["France",1318],["India",1292],["Canada",1244],["South Korea",1227],["Thailand",1145],["Germany",942]]},{"y":1956,"t":66356,"c":[15320,13413,281,35870,633,744],"k":[["United States",34150],["United Kingdom",6098],["China",5969],["Philippines",2919],["India",1705],["Germany",1554],["Canada",1380],["Greece",1291],["France",1209],["South Korea",1140]]},{"y":1957,"t":80361,"c":[20385,15147,454,41851,749,1581],"k":[["United States",39878],["China",7072],["United Kingdom",5652],["Philippines",3653],["South Korea",2887],["Germany",1711],["Canada",1558],["Thailand",1448],["Greece",1438],["Australia",1431]]},{"y":1958,"t":96514,"c":[22979,15560,458,54069,968,2330],"k":[["United States",51399],["China",6463],["United Kingdom",5319],["Philippines",3875],["South Korea",3735],["Canada",2135],["Australia",2083],["Germany",2049],["India",1977],["France",1709]]},{"y":1959,"t":118020,"c":[22129,18206,610,72328,1205,3436],"k":[["United States",68652],["China",6595],["United Kingdom",6262],["Philippines",4991],["Australia",2993],["Canada",2822],["South Korea",2530],["Germany",2218],["India",2161],["France",2070]]},{"y":1960,"t":146881,"c":[29629,23181,854,86353,1658,5077],"k":[["United States",81730],["China",7898],["United Kingdom",7820],["South Korea",5752],["Philippines",5508],["Australia",4311],["Canada",3234],["Germany",3184],["India",2680],["France",2528]]},{"y":1961,"t":180048,"c":[38483,28546,991,103485,2579,5783],"k":[["United States",97294],["China",10262],["United Kingdom",9810],["South Korea",7731],["Philippines",7128],["Australia",4799],["Canada",4560],["Germany",4140],["India",3350],["France",3208]]},{"y":1962,"t":202181,"c":[40453,34660,1468,115525,2013,7888],"k":[["United States",108400],["China",12008],["United Kingdom",11356],["South Korea",7808],["Philippines",7225],["Australia",6587],["Germany",5178],["Canada",4871],["France",4156],["India",3234]]},{"y":1963,"t":227289,"c":[46761,37890,1690,131195,2127,7391],"k":[["United States",124258],["China",14365],["United Kingdom",12938],["South Korea",10551],["Philippines",7938],["Australia",6152],["Germany",5813],["Canada",4792],["France",4527],["Thailand",2722]]},{"y":1964,"t":273551,"c":[64955,52683,2905,139737,3492,9493],"k":[["United States",129908],["South Korea",18865],["United Kingdom",15041],["Taiwan",12357],["Philippines",9105],["Germany",8283],["Australia",7507],["France",7462],["Canada",6625],["Indonesia",4498]]},{"y":1965,"t":291309,"c":[66347,48169,2468,161454,3308,8893],"k":[["United States",150253],["South Korea",17065],["Taiwan",15583],["United Kingdom",15518],["Philippines",8945],["Canada",8320],["Germany",7599],["Australia",7550],["France",6082],["Indonesia",4656]]},{"y":1966,"t":338584,"c":[80923,54682,2616,186641,4212,9297],"k":[["United States",173593],["South Korea",25791],["Taiwan",17744],["United Kingdom",17004],["Philippines",10824],["Canada",9932],["Germany",8528],["Australia",7927],["France",7109],["Thailand",4313]]},{"y":1967,"t":375929,"c":[98377,59526,2848,199486,4270,11064],"k":[["United States",187373],["South Korea",33558],["Taiwan",20789],["United Kingdom",18890],["Philippines",12028],["Australia",9528],["Canada",9349],["Germany",9023],["France",6795],["Thailand",5193]]},{"y":1968,"t":418522,"c":[114141,66733,3672,215400,5287,12884],"k":[["United States",199581],["South Korea",39634],["Taiwan",25115],["United Kingdom",20388],["Philippines",14190],["Canada",11848],["Germany",11639],["Australia",11281],["France",7560],["Thailand",5872]]},{"y":1969,"t":515116,"c":[125351,84842,4338,277060,7967,15060],"k":[["United States",255663],["South Korea",44654],["Taiwan",27501],["United Kingdom",24755],["Canada",15523],["Germany",14763],["Philippines",13573],["Australia",13001],["France",9435],["Thailand",6506]]},{"y":1970,"t":775061,"c":[211684,147449,6751,367910,13789,26392],"k":[["United States",315211],["South Korea",71790],["Taiwan",46535],["Canada",42589],["United Kingdom",36777],["Germany",23734],["Australia",21265],["France",21168],["Philippines",20477],["India",15276]]},{"y":1971,"t":598061,"c":[175393,99072,4862,292322,8561,17039],"k":[["United States",271029],["South Korea",77545],["Taiwan",38774],["United Kingdom",29853],["Germany",18686],["Canada",15612],["Australia",14406],["Philippines",12672],["France",10422],["China Hong Kong",8112]]},{"y":1972,"t":662474,"c":[197847,122383,5054,308295,9957,18128],"k":[["United States",281853],["South Korea",85757],["Taiwan",47536],["United Kingdom",35384],["Germany",21632],["Canada",18134],["Australia",15236],["France",14563],["China Hong Kong",12645],["Philippines",10860]]},{"y":1973,"t":740738,"c":[240074,143292,6561,316374,12366,21087],"k":[["United States",287988],["South Korea",110804],["Taiwan",50866],["United Kingdom",41338],["Germany",26215],["Canada",20147],["France",18628],["Australia",17805],["China Hong Kong",16893],["Italy",9871]]},{"y":1974,"t":724017,"c":[267881,138320,7024,273349,12341,23821],"k":[["United States",245826],["South Korea",124263],["Taiwan",60876],["United Kingdom",39393],["Germany",25843],["Australia",20162],["Canada",19765],["China Hong Kong",15463],["France",15397],["Philippines",10411]]},{"y":1975,"t":780298,"c":[306773,149832,7801,270788,15051,28528],"k":[["United States",237219],["South Korea",129186],["Taiwan",77091],["United Kingdom",45872],["Germany",26101],["Australia",24449],["Canada",23565],["China Hong Kong",19318],["France",15983],["Philippines",12574]]},{"y":1976,"t":881203,"c":[335974,167846,7613,316219,16025,35771],"k":[["United States",274686],["South Korea",141123],["Taiwan",82898],["United Kingdom",53860],["Australia",31676],["Canada",29331],["Germany",27856],["China Hong Kong",22721],["France",18714],["Thailand",14015]]},{"y":1977,"t":983069,"c":[374615,195586,8350,348388,18995,35339],"k":[["United States",303755],["South Korea",156605],["Taiwan",88813],["United Kingdom",61834],["Canada",34898],["Germany",33938],["Australia",31054],["China Hong Kong",25620],["France",20960],["Philippines",16138]]},{"y":1978,"t":1017149,"c":[419201,209812,9381,322382,21396,33161],"k":[["United States",275240],["South Korea",184101],["Taiwan",99237],["United Kingdom",64457],["Germany",35743],["Canada",34172],["Australia",28877],["China Hong Kong",23273],["France",22999],["Philippines",20375]]},{"y":1979,"t":1089341,"c":[512108,214055,8505,302169,23410,27193],"k":[["United States",256507],["South Korea",199146],["Taiwan",165708],["United Kingdom",71387],["Germany",38458],["Canada",34215],["China Hong Kong",24094],["Philippines",23223],["Australia",22579],["France",22217]]},{"y":1980,"t":1295866,"c":[640637,249806,11394,334638,27294,29959],"k":[["United States",277980],["Taiwan",235549],["South Korea",212973],["United Kingdom",89368],["Canada",40821],["Germany",40532],["China Hong Kong",32239],["Philippines",27902],["France",25855],["Australia",23985]]},{"y":1981,"t":1552296,"c":[798658,292385,14607,375619,29760,38825],"k":[["United States",310726],["Taiwan",305233],["South Korea",250709],["United Kingdom",120771],["China Hong Kong",46614],["Canada",44718],["Germany",41723],["Philippines",37483],["Australia",29276],["France",27616]]},{"y":1982,"t":1708306,"c":[878175,322991,16050,412993,23441,51622],"k":[["United States",352208],["Taiwan",311125],["South Korea",284598],["United Kingdom",151545],["China Hong Kong",59898],["Canada",48166],["Germany",42066],["Philippines",37878],["Australia",37785],["Singapore",31754]]},{"y":1983,"t":1900597,"c":[982688,358264,18211,464463,18887,54284],"k":[["United States",400984],["Taiwan",331634],["South Korea",283971],["United Kingdom",174384],["China Hong Kong",64727],["Canada",53613],["Malaysia",52460],["Philippines",47887],["Germany",44532],["Thailand",43940]]},{"y":1984,"t":2036488,"c":[1057926,365207,18106,505344,20406,65198],"k":[["United States",437745],["Taiwan",351294],["South Korea",292483],["United Kingdom",167521],["Malaysia",64768],["Canada",53095],["China Hong Kong",52750],["China",51010],["Germany",49773],["Philippines",49511]]},{"y":1985,"t":2259894,"c":[1168254,410735,13709,564522,25862,71941],"k":[["United States",487713],["Taiwan",356934],["South Korea",296708],["United Kingdom",183863],["China",100972],["Malaysia",71021],["Philippines",65529],["Canada",61270],["Australia",53553],["Germany",49604]]},{"y":1986,"t":2021450,"c":[1014787,358365,10771,550200,26488,56784],"k":[["United States",482670],["Taiwan",300272],["South Korea",299602],["United Kingdom",142697],["Philippines",80508],["China",75275],["Canada",55374],["Germany",50480],["Malaysia",45589],["Australia",40534]]},{"y":1987,"t":2161275,"c":[1136710,376164,9675,551911,25797,57777],"k":[["United States",479891],["Taiwan",360636],["South Korea",360159],["United Kingdom",144463],["Philippines",85267],["China",73030],["Canada",58536],["Germany",55271],["Malaysia",40080],["Australia",39169]]},{"y":1988,"t":2414447,"c":[1387050,395843,10038,530767,31269,56542],"k":[["South Korea",515807],["United States",457620],["Taiwan",392723],["United Kingdom",149954],["China",112389],["Philippines",86567],["Canada",58583],["Germany",58273],["Malaysia",45887],["Thailand",41994]]},{"y":1989,"t":2985764,"c":[1791652,451968,11653,611779,48778,67390],"k":[["South Korea",806065],["United States",538117],["Taiwan",501907],["United Kingdom",172833],["China",100144],["Philippines",88296],["Germany",63185],["Canada",60215],["Malaysia",54569],["Australia",49778]]},{"y":1990,"t":3504470,"c":[2164373,516450,12095,644525,92863,71547],"k":[["South Korea",978984],["Taiwan",610652],["United States",564958],["United Kingdom",212043],["China",117814],["Philippines",108292],["Thailand",69477],["Brazil",67303],["Germany",66827],["Canada",64791]]},{"y":1991,"t":3855952,"c":[2477006,521864,12867,631637,137933,72420],"k":[["South Korea",1097601],["Taiwan",686076],["United States",554147],["China",142150],["Philippines",125329],["Thailand",105666],["United Kingdom",105535],["Brazil",96337],["Malaysia",78019],["Canada",63120]]},{"y":1992,"t":3926347,"c":[2519046,535275,12721,660129,117116,80186],"k":[["South Korea",1094724],["Taiwan",745835],["United States",574181],["China",187681],["Philippines",120660],["United Kingdom",107425],["Thailand",97568],["Brazil",81495],["Canada",70689],["Germany",65101]]},{"y":1993,"t":3747157,"c":[2389764,518625,13445,637881,102486,83152],"k":[["South Korea",1069450],["Taiwan",700294],["United States",549090],["China",204302],["United Kingdom",110698],["Philippines",109353],["Canada",73738],["Thailand",72812],["Brazil",70719],["Germany",64102]]},{"y":1994,"t":3831367,"c":[2454541,530447,13221,637623,102665,90929],"k":[["South Korea",1140372],["Taiwan",681183],["United States",548265],["China",210476],["Philippines",126739],["United Kingdom",123638],["Canada",75560],["Brazil",72236],["Germany",65755],["Thailand",63812]]},{"y":1995,"t":3732450,"c":[2344748,513915,14332,648800,117419,91723],"k":[["South Korea",1103566],["Taiwan",614931],["United States",558474],["China",229965],["United Kingdom",131105],["Philippines",105838],["Brazil",90322],["Canada",77125],["Germany",69939],["Australia",61373]]},{"y":1996,"t":4244529,"c":[2684751,620480,14067,707512,120257,94907],"k":[["South Korea",1224441],["Taiwan",756785],["United States",606652],["China",257393],["United Kingdom",145584],["Philippines",106394],["Brazil",94068],["Canada",87246],["Germany",77717],["Thailand",68987]]},{"y":1997,"t":4669514,"c":[2875201,773515,15495,755453,134560,111036],"k":[["South Korea",1236597],["Taiwan",857877],["United States",642933],["China",283467],["United Kingdom",170251],["Philippines",124856],["Brazil",104323],["Canada",96516],["Germany",84456],["Australia",79548]]},{"y":1998,"t":4556845,"c":[2617778,873891,17183,813891,105106,124101],"k":[["South Korea",960556],["Taiwan",874985],["United States",688006],["China",299573],["United Kingdom",186454],["Philippines",129053],["Canada",109432],["Australia",93196],["Germany",88089],["Brazil",77569]]},{"y":1999,"t":4901317,"c":[2978960,786763,18402,847115,97478,170015],"k":[["South Korea",1160034],["Taiwan",963701],["United States",720142],["China",327005],["United Kingdom",188036],["Philippines",144305],["Australia",137558],["Canada",109651],["Germany",89355],["France",72356]]},{"y":2000,"t":5272095,"c":[3222982,814912,20643,890771,135770,184974],"k":[["South Korea",1286583],["Taiwan",944019],["United States",749343],["China",385296],["United Kingdom",198675],["Philippines",169755],["Australia",150046],["Canada",122260],["Brazil",101513],["Germany",90605]]},{"y":2001,"t":5286310,"c":[3280514,817035,21289,862392,114007,189336],"k":[["South Korea",1342987],["Taiwan",838001],["United States",715036],["China",444441],["United Kingdom",203551],["Philippines",186262],["Australia",152480],["Canada",128707],["Germany",89895],["France",85234]]},{"y":2002,"t":5771975,"c":[3674574,841667,24001,921566,103898,204542],"k":[["South Korea",1472096],["Taiwan",909654],["United States",755196],["China",527796],["United Kingdom",225074],["Philippines",197136],["Australia",167868],["China Hong Kong",136482],["Canada",134845],["Germany",96070]]},{"y":2003,"t":5727240,"c":[3793793,762511,23682,825836,109088,210906],"k":[["South Korea",1621903],["Taiwan",816692],["United States",678935],["China",537700],["Philippines",209525],["United Kingdom",206331],["Australia",175315],["China Hong Kong",163254],["Canada",129460],["Germany",95691]]},{"y":2004,"t":6756830,"c":[4607027,823210,24129,955068,109650,236635],"k":[["South Korea",1774872],["Taiwan",1117950],["United States",785916],["China",741659],["Philippines",236291],["China Hong Kong",226321],["United Kingdom",222284],["Australia",197940],["Canada",146109],["Thailand",121963]]},{"y":2005,"t":7450103,"c":[5134673,874247,28782,1035301,125973,249945],"k":[["South Korea",2008418],["Taiwan",1315594],["United States",853845],["China",780924],["China Hong Kong",250366],["United Kingdom",229758],["Philippines",221309],["Australia",210043],["Canada",154571],["Thailand",136868]]}];
+const CONT_LABELS=["Asia","Europe","Africa","North America","South America","Oceania"];
+const CONT_COLORS=["#378ADD","#D85A30","#1D9E75","#BA7517","#D4537E","#639922"];
+const BAR_PALETTE=["#378ADD","#185FA5","#0C447C","#5DCAA5","#1D9E75","#0F6E56","#3266ad","#85B7EB","#97C459","#B5D4F4"];
+
+const fmt=n=>n>=1e6?(n/1e6).toFixed(2)+'M':n>=1e3?(n/1e3).toFixed(0)+'K':n;
+
+function getRow(yr){return DATA.find(d=>d.y===yr)||DATA[DATA.length-1]}
+
+function updateStats(row){
+  document.getElementById('s-total').textContent=row.t.toLocaleString();
+  const mi=row.c.indexOf(Math.max(...row.c));
+  document.getElementById('s-region').textContent=CONT_LABELS[mi];
+  document.getElementById('s-top').textContent=row.k[0][0];
+}
+
+const lineCtx=document.getElementById('cLine');
+const lineChart=new Chart(lineCtx,{
+  type:'line',
+  data:{
+    labels:DATA.map(d=>d.y),
+    datasets:[{
+      data:DATA.map(d=>d.t),
+      borderColor:'#378ADD',
+      backgroundColor:'rgba(55,138,221,0.08)',
+      borderWidth:2,
+      fill:true,
+      pointRadius:0,
+      pointHoverRadius:5,
+      tension:0.3
+    }]
+  },
+  options:{
+    responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>' '+c.raw.toLocaleString()+' arrivals'}}},
+    scales:{
+      x:{ticks:{color:'#888',font:{size:10},maxTicksLimit:12},grid:{display:false}},
+      y:{ticks:{color:'#888',font:{size:10},callback:v=>fmt(v)},grid:{color:'rgba(128,128,128,0.12)'}}
+    }
+  }
+});
+
+const barCtx=document.getElementById('cBar');
+const barChart=new Chart(barCtx,{
+  type:'bar',
+  data:{labels:[],datasets:[{data:[],backgroundColor:BAR_PALETTE,borderRadius:3}]},
+  options:{
+    indexAxis:'y',responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>' '+c.raw.toLocaleString()}}},
+    scales:{
+      x:{ticks:{color:'#888',font:{size:10},callback:v=>fmt(v)},grid:{color:'rgba(128,128,128,0.12)'}},
+      y:{ticks:{color:'#888',font:{size:10}},grid:{display:false}}
+    }
+  }
+});
+
+const pieCtx=document.getElementById('cPie');
+const pieChart=new Chart(pieCtx,{
+  type:'doughnut',
+  data:{labels:CONT_LABELS,datasets:[{data:[],backgroundColor:CONT_COLORS,borderWidth:1,borderColor:'rgba(128,128,128,0.15)'}]},
+  options:{
+    responsive:true,maintainAspectRatio:false,
+    cutout:'52%',
+    plugins:{
+      legend:{display:false},
+      tooltip:{callbacks:{label:c=>{const pct=(c.raw/c.dataset.data.reduce((a,b)=>a+b,0)*100).toFixed(1);return ' '+c.raw.toLocaleString()+' ('+pct+'%)'}}}
+    }
+  }
+});
+
+function buildPieLegend(row){
+  const total=row.c.reduce((a,b)=>a+b,0);
+  const leg=document.getElementById('pie-legend');
+  leg.innerHTML=CONT_LABELS.map((l,i)=>{
+    const pct=(row.c[i]/total*100).toFixed(0);
+    return`<span><span class="leg-dot" style="background:${CONT_COLORS[i]}"></span>${l} ${pct}%</span>`;
+  }).join('');
+}
+
+function updateCharts(yr){
+  const row=getRow(yr);
+  document.getElementById('yr-badge').textContent=yr;
+  document.getElementById('bar-yr').textContent=yr;
+  document.getElementById('pie-yr').textContent=yr;
+  updateStats(row);
+  barChart.data.labels=row.k.map(k=>k[0]);
+  barChart.data.datasets[0].data=row.k.map(k=>k[1]);
+  barChart.update('none');
+  pieChart.data.datasets[0].data=row.c;
+  pieChart.update('none');
+  buildPieLegend(row);
+  lineChart.data.datasets[0].pointRadius=DATA.map(d=>d.y===yr?5:0);
+  lineChart.data.datasets[0].pointBackgroundColor=DATA.map(d=>d.y===yr?'#D85A30':'#378ADD');
+  lineChart.update('none');
+}
+
+document.getElementById('yr-slider').addEventListener('input',e=>{
+  updateCharts(parseInt(e.target.value));
+});
+
+updateCharts(2000);
+</script>
